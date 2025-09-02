@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Information Collector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Set theme on initial load to prevent a flash of unstyled content
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark')
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+        // Tailwind config for dark mode
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        /* Custom modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-box {
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 90%;
+            max-width: 400px;
+            transition: background-color 0.3s;
+        }
+        .modal-input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            margin-bottom: 1.5rem;
+            transition: border-color 0.2s, box-shadow 0.2s, background-color 0.3s, color 0.3s;
+        }
+        .modal-input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+        .error-message {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: -1rem;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+
+    <!-- Theme Toggle Button -->
+    <button id="theme-toggle" type="button" class="fixed top-4 right-4 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5 z-20">
+  <svg id="theme-toggle-dark-icon" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+  <svg id="theme-toggle-light-icon" class="w-6 h-6" fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707z"/>
+    </svg>
+  <span class="sr-only">Toggle theme</span>
+</button>
+
+    <div id="app-container" class="w-full max-w-2xl mx-auto p-4 md:p-6 text-center">
+        <h1 class="text-3xl font-bold mb-4 text-gray-800 dark:text-white">User Data Collector</h1>
+        <p class="text-gray-600 dark:text-gray-400 mb-8">Click the button below to start entering user information.</p>
+
+        <button id="startButton" class="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transition-transform transform hover:scale-105">
+            Start
+        </button>
+
+        <div id="userTableContainer" class="mt-10 hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+            <h2 class="text-2xl font-semibold mb-4 text-left text-gray-900 dark:text-white">User Information</h2>
+            <div class="overflow-x-auto">
+                <table id="userTable" class="min-w-full text-left border-collapse">
+                    <thead class="bg-gray-100 dark:bg-gray-700">
+                        <tr>
+                            <th class="py-3 px-4 font-semibold text-sm text-gray-600 dark:text-gray-300 uppercase border-b border-gray-200 dark:border-gray-600">Name</th>
+                            <th class="py-3 px-4 font-semibold text-sm text-gray-600 dark:text-gray-300 uppercase border-b border-gray-200 dark:border-gray-600">Age</th>
+                        </tr>
+                    </thead>
+                    <tbody class="dark:text-gray-300">
+                        <!-- User data will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal for Prompts -->
+    <div id="customPrompt" class="modal-overlay hidden">
+        <div class="modal-box bg-white dark:bg-gray-800">
+            <p id="promptMessage" class="font-medium text-lg text-gray-900 dark:text-white"></p>
+            <input id="promptInput" type="text" class="modal-input bg-gray-50 border border-gray-300 text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+            <p id="promptError" class="error-message">Invalid input.</p>
+            <div class="flex justify-end space-x-3">
+                <button id="promptCancel" class="px-5 py-2 rounded-md text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500 focus:outline-none">Cancel</button>
+                <button id="promptOK" class="px-5 py-2 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none">OK</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        const userTableContainer = document.getElementById('userTableContainer');
+        const userTable = document.getElementById('userTable').getElementsByTagName('tbody')[0];
+
+        const customPrompt = document.getElementById('customPrompt');
+        const promptMessage = document.getElementById('promptMessage');
+        const promptInput = document.getElementById('promptInput');
+        const promptError = document.getElementById('promptError');
+        const promptOK = document.getElementById('promptOK');
+        const promptCancel = document.getElementById('promptCancel');
+
+        let resolvePrompt;
+        let users = [];
+
+        // Function to show a custom prompt and return a promise
+        function showPrompt({ message, validation }) {
+            return new Promise((resolve) => {
+                promptMessage.textContent = message;
+                promptInput.value = '';
+                promptError.style.display = 'none';
+                customPrompt.classList.remove('hidden');
+                promptInput.focus();
+                resolvePrompt = resolve;
+
+                promptOK.onclick = () => {
+                    const value = promptInput.value;
+                    if (validation(value)) {
+                        customPrompt.classList.add('hidden');
+                        resolve(value);
+                    } else {
+                        promptError.style.display = 'block';
+                    }
+                };
+
+                promptCancel.onclick = () => {
+                    customPrompt.classList.add('hidden');
+                    resolve(null); // Resolve with null if canceled
+                };
+            });
+        }
+
+        // Main application logic
+        async function startDataCollection() {
+            // Reset previous data
+            users = [];
+            userTable.innerHTML = '';
+            userTableContainer.classList.add('hidden');
+            startButton.textContent = 'Start Over';
+
+
+            // 1. Ask for number of persons
+            const numPersonsStr = await showPrompt({
+                message: 'Enter the no. of persons:',
+                validation: (value) => {
+                    const num = parseInt(value);
+                    const isValid = !isNaN(num) && num > 0;
+                    promptError.textContent = 'Please enter a valid number greater than 0.';
+                    return isValid;
+                }
+            });
+
+            if (numPersonsStr === null) return; // Exit if user cancels
+            const numPersons = parseInt(numPersonsStr);
+
+            // 2. Sequentially ask for user information
+            for (let i = 0; i < numPersons; i++) {
+                const name = await showPrompt({
+                    message: `Enter user ${i + 1} name:`,
+                    validation: (value) => {
+                        const isValid = value.length > 3 && value.length < 10;
+                        promptError.textContent = 'Name length should be more than 3 and less than 10 characters.';
+                        return isValid;
+                    }
+                });
+                if (name === null) return;
+
+                const ageStr = await showPrompt({
+                    message: `Enter user ${i + 1} age:`,
+                    validation: (value) => {
+                        const num = parseInt(value);
+                        const isValid = !isNaN(num) && num > 10 && num < 60;
+                        promptError.textContent = 'Age should be greater than 10 and less than 60.';
+                        return isValid;
+                    }
+                });
+                if (ageStr === null) return;
+                const age = parseInt(ageStr);
+
+                users.push({ name, age });
+            }
+
+            // 3. Print information in the HTML table
+            if (users.length > 0) {
+                displayUsersInTable();
+            }
+        }
+
+        function displayUsersInTable() {
+            users.forEach(user => {
+                const row = userTable.insertRow();
+                const nameCell = row.insertCell(0);
+                const ageCell = row.insertCell(1);
+
+                nameCell.className = 'py-3 px-4 border-b border-gray-200 dark:border-gray-700';
+                ageCell.className = 'py-3 px-4 border-b border-gray-200 dark:border-gray-700';
+
+                nameCell.textContent = user.name;
+                ageCell.textContent = user.age;
+            });
+            userTableContainer.classList.remove('hidden');
+        }
+
+        startButton.addEventListener('click', startDataCollection);
+
+        // --- Theme Toggler ---
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+        const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+        const htmlEl = document.documentElement;
+
+        // Function to update icon visibility
+        // Function to update icon visibility
+        function updateThemeIcons() {
+            if (htmlEl.classList.contains('dark')) {
+                themeToggleLightIcon.classList.remove('hidden');
+                themeToggleDarkIcon.classList.add('hidden');
+            } else {
+                themeToggleDarkIcon.classList.remove('hidden');
+                themeToggleLightIcon.classList.add('hidden');
+            }
+        }
+
+        // Initial theme setup and icon visibility
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+
+        updateThemeIcons(); // Call the function to set the icons immediately after setting the theme
+
+        // The rest of your event listener remains the same
+        themeToggleBtn.addEventListener('click', () => {
+            htmlEl.classList.toggle('dark');
+            if (htmlEl.classList.contains('dark')) {
+                localStorage.theme = 'dark';
+            } else {
+                localStorage.theme = 'light';
+            }
+            updateThemeIcons();
+        });
+    </script>
+</body>
+</html>
+
+
